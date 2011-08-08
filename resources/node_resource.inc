@@ -101,6 +101,14 @@ function _node_resource_definition() {
             'default value' => array(),
             'source' => array('param' => 'parameters'),
           ),
+          array(
+            'name' => 'all_fields',
+            'optional' => TRUE,
+            'type' => 'int',
+            'description' => 'Use node_load to return all node fields.',
+            'default value' => 0,
+            'source' => array('param' => 'all_fields'),
+          ),
         ),
         'access arguments' => array('access content'),
       ),
@@ -378,7 +386,7 @@ function _node_resource_delete($nid) {
  *     - Is there an easier syntax we can define which can make the urls
  *       for index requests more straightforward?
  */
-function _node_resource_index($page, $fields, $parameters) {
+function _node_resource_index($page, $fields, $parameters, $all_fields) {
   // Limit to published nodes if user doesn't have 'administer nodes'
   // permissions.
   if (!user_access('administer nodes')) {
@@ -389,6 +397,14 @@ function _node_resource_index($page, $fields, $parameters) {
   $results = array();
   while ($node = db_fetch_object($query)) {
     $results[] = $node;
+  }
+
+  if ($all_fields) {
+      $real_results;
+      foreach ($results as $key => $result) {
+           $real_results[$key] = node_load($result->nid);
+      }
+      $results = $real_results;
   }
 
   return services_resource_build_index_list($results, 'node', 'nid');
