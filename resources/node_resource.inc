@@ -392,19 +392,33 @@ function _node_resource_index($page, $fields, $parameters, $all_fields) {
   if (!user_access('administer nodes')) {
     $parameters['status'] = 1;
   }
-  $query = services_resource_build_index_query('node', 'n.sticky DESC, n.created DESC', $page, $fields, $parameters, 'n', 'nid');
+  // If we're using $all_fields, retrieve all fields and filter later.
+  $index_fields = $all_fields ? '*' : $fields;
+  $query = services_resource_build_index_query('node', 'n.sticky DESC, n.created DESC', $page, $index_fields, $parameters, 'n', 'nid');
   // Put together array of matching nodes to return.
   $results = array();
-  while ($node = db_fetch_object($query)) {
-    $results[] = $node;
+
+  if ($all_fields && $fields != '*') {
+    $fields = preg_replace('/[^a-z_0-9,]/', '', strtolower($fields));
+    $fields_arr = explode(',', $fields);
   }
 
-  if ($all_fields) {
-      $real_results;
+  while ($node = db_fetch_object($query)) {
+    if ($all_fields) {
       foreach ($results as $key => $result) {
-           $real_results[$key] = node_load($result->nid);
+        $node = node_load($result->nid);
+        if ($fields != '*') {
+          $pruned_node = (object)array();
+          foreach ($fields_arr as $field) {
+            if (property_exists($node, $field)) {
+              $pruned_node->$field = $node->$field;
+            }
+          }
+          $node = $pruned_node;
+        }
       }
-      $results = $real_results;
+    }
+    $results[] = $node;
   }
 
   return services_resource_build_index_list($results, 'node', 'nid');
