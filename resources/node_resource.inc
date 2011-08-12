@@ -377,6 +377,9 @@ function _node_resource_delete($nid) {
  * @param $parameters
  *   An array of fields and values used to build a sql WHERE clause indicating
  *   what items should be deleted.
+ * @param $all_fields
+ *   Perform node_load and return all data associated with a node.  This has
+ *   potential to be expensive.
  * @return
  *   An array of node objects.
  *
@@ -405,17 +408,15 @@ function _node_resource_index($page, $fields, $parameters, $all_fields) {
 
   while ($node = db_fetch_object($query)) {
     if ($all_fields) {
-      foreach ($results as $key => $result) {
-        $node = node_load($result->nid);
-        if ($fields != '*') {
-          $pruned_node = (object)array();
-          foreach ($fields_arr as $field) {
-            if (property_exists($node, $field)) {
-              $pruned_node->$field = $node->$field;
-            }
+      $node = node_load($node->nid);
+      if ($fields != '*') {
+        $pruned_node = (object)array();
+        foreach ($fields_arr as $field) {
+          if (property_exists($node, $field)) {
+            $pruned_node->$field = $node->$field;
           }
-          $node = $pruned_node;
         }
+        $node = $pruned_node;
       }
     }
     $results[] = $node;
